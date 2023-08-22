@@ -9,3 +9,15 @@ class GoogleOAuthBackend(ModelBackend):
             return user
         except User.DoesNotExist:
             return None
+
+
+
+
+
+class GoogleAuthBackend:
+    def authenticate(self, request, google_credential=None):
+        try:
+            user = User.objects.get(google_credential=google_credential)
+            return user
+        except User.DoesNotExist:
+            return None
