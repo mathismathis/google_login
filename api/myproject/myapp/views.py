@@ -1,8 +1,11 @@
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import ChatRoom, UserChatRoom
 from myapp.serializers import ChatRoomSerializer, UserSerializer
 from django.contrib.auth import login, authenticate, logout
@@ -13,6 +16,21 @@ import requests
 
 from .models import User
 from rest_framework.permissions import AllowAny
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        print(token)
+        # Add custom claims
+        token['username'] = user.username
+        token['email'] = user.email
+        return token
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 
 class GoogleLoginView(APIView):
@@ -26,7 +44,7 @@ class GoogleLoginView(APIView):
             google_data = google_response.json()
             email = google_data.get('email')
             name = google_data.get('name')
-            photo_url = google_data.get('picture')
+            photo_url = google_data.get('photo_url')
 
             try:
                 user = User.objects.get(email=email)
@@ -61,7 +79,7 @@ class GoogleLoginView(APIView):
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def create_chat_room(request):
+def create_chat_room(request, format=None):
     serializer = ChatRoomSerializer(data=request.data)
     if serializer.is_valid():
         chat_room = serializer.save()
@@ -71,26 +89,26 @@ def create_chat_room(request):
 
 
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def list_chat_rooms(request):
+def list_chat_rooms(request, format=None):
     chat_rooms = ChatRoom.objects.all()
     serializer = ChatRoomSerializer(chat_rooms, many=True)
     return Response(serializer.data)
 
 
 class LogoutView(APIView):
-
+    authentication_classes = [JWTAuthentication]
     permission_classes = [AllowAny]
 
-    def post(self, request):
-        logout(request)
-        print(request.user)
+    def post(self, request, format=None):
+        pass
 
-        return Response({'success': True, 'message': 'Logout successful'})
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def all_user_list(request,format=None):
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def all_user_list(request, format=None):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data)
