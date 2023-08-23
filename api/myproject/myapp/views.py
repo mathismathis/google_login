@@ -77,7 +77,7 @@ class GoogleLoginView(APIView):
 
 
 @api_view(['POST'])
-@authentication_classes([JWTAuthentication])
+@authentication_classes([JSONWebTokenAuthentication])
 @permission_classes([IsAuthenticated])
 def create_chat_room(request, format=None):
     serializer = ChatRoomSerializer(data=request.data)
@@ -98,7 +98,7 @@ def list_chat_rooms(request, format=None):
 
 
 class LogoutView(APIView):
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [JSONWebTokenAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request, format=None):
